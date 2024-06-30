@@ -98,11 +98,8 @@ app.get("/api/events", (req, res) => {
         return;
       }
       const events = response.data.items;
-      // Filter out declined events
-      const filteredEvents = events.filter(
-        (event) => event.status !== "cancelled"
-      );
-      res.json(filteredEvents);
+
+      res.json(events);
     }
   );
 });

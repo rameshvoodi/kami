@@ -61,46 +61,45 @@ const getLastDate = (start?: string) => {
     : "No past instances";
 };
 
+// Test data based on provided eventData
 const eventData: Event = {
-    "kind": "calendar#event",
-    "etag": "\"3437272843210000\"",
-    "id": "3654flt23h4go055isrk4goah0_20240724",
-    "status": "confirmed",
-    "htmlLink": "https://www.google.com/calendar/event?eid=MzY1NGZsdDIzaDRnbzA1NWlzcms0Z29haDBfMjAyNDA3MjQgcmFtZXNoa3VtYXJ2b29kaTIwMDJAbQ",
-    "created": "2024-06-17T15:00:21.000Z",
-    "updated": "2024-06-17T15:00:21.605Z",
-    "summary": "allu arjun",
-    "creator": {
-      "email": "rameshkumarvoodi2002@gmail.com",
-      "self": true
-    },
-    "organizer": {
-      "email": "rameshkumarvoodi2002@gmail.com",
-      "self": true
-    },
-    "start": {
-      "date": "2024-07-24"
-    },
-    "end": {
-      "date": "2024-07-25"
-    },
-    "recurringEventId": "3654flt23h4go055isrk4goah0",
-    "originalStartTime": {
-      "date": "2024-07-24"
-    },
-    "transparency": "transparent",
-    "iCalUID": "3654flt23h4go055isrk4goah0@google.com",
-    "sequence": 0,
-    "reminders": {
-      "useDefault": false
-    },
-    "eventType": "default"
-  };
-  
-  // Test function usage with the eventData
-  console.log("Event Summary:", eventData.summary);
-  console.log("Relative Time:", getRelativeTime(eventData.start.date));
-  console.log("Time Between Instances:", getTimeBetweenInstances(eventData.start.date, eventData.end.date));
-  console.log("Last Date:", getLastDate(eventData.start.date));
-  
-  
+  "kind": "calendar#event",
+  "etag": "\"3437272762204000\"",
+  "id": "78nb67tb7q7bjljpi44ov615v0_20240701",
+  "status": "confirmed",
+  "htmlLink": "https://www.google.com/calendar/event?eid=NzhuYjY3dGI3cTdiamxqcGk0NG92NjE1djBfMjAyNDA3MDEgcmFtZXNoa3VtYXJ2b29kaTIwMDJAbQ",
+  "created": "2024-06-17T14:59:41.000Z",
+  "updated": "2024-06-17T14:59:41.102Z",
+  "summary": "random event papa",
+  "creator": {
+    "email": "rameshkumarvoodi2002@gmail.com",
+    "self": true
+  },
+  "organizer": {
+    "email": "rameshkumarvoodi2002@gmail.com",
+    "self": true
+  },
+  "start": {
+    "date": "2024-07-01"
+  },
+  "end": {
+    "date": "2024-07-04"
+  },
+  "recurringEventId": "78nb67tb7q7bjljpi44ov615v0",
+  "originalStartTime": {
+    "date": "2024-07-01"
+  },
+  "transparency": "transparent",
+  "iCalUID": "78nb67tb7q7bjljpi44ov615v0@google.com",
+  "sequence": 0,
+  "reminders": {
+    "useDefault": false
+  },
+  "eventType": "default"
+};
+
+// Test function usage with the eventData
+console.log("Event Summary:", eventData.summary);
+console.log("Relative Time:", getRelativeTime(eventData.start.date));
+console.log("Time Between Instances:", getTimeBetweenInstances(eventData.start.date, eventData.end.date));
+console.log("Last Date:", getLastDate(eventData.start.date));
