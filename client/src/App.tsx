@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { format as timeagoFormat } from "timeago.js";
 
 interface Event {
   kind: string;
@@ -17,21 +18,15 @@ interface Event {
     email: string;
     self: boolean;
   };
-  start: {
-    date: string;
-  };
-  end: {
-    date: string;
-  };
-  recurringEventId: string;
-  originalStartTime: {
-    date: string;
-  };
-  transparency: string;
+  start: { dateTime?: string; date?: string; timeZone?: string };
+  end: { dateTime?: string; date?: string; timeZone?: string };
+  recurrence?: string[];
+  recurringEventId?: string;
   iCalUID: string;
   sequence: number;
   reminders: {
     useDefault: boolean;
+    overrides?: { method: string; minutes: number }[];
   };
   eventType: string;
 }
@@ -47,56 +42,104 @@ interface Calendar {
   foregroundColor: string;
   selected: boolean;
   accessRole: string;
-  defaultReminders: Array<{
-    method: string;
-    minutes: number;
-  }>;
+  defaultReminders: { method: string; minutes: number }[];
   notificationSettings: {
-    notifications: Array<{
-      type: string;
-      method: string;
-    }>;
+    notifications: { type: string; method: string }[];
   };
-  primary?: boolean;
+  primary: boolean;
   conferenceProperties: {
-    allowedConferenceSolutionTypes: Array<string>;
+    allowedConferenceSolutionTypes: string[];
   };
 }
-// `http://localhost:5000/api/events?calendar=${encodeURIComponent(
-//         selectedCalendarId
-//       )}`
-function App() {
+
+const App = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [calendars, setCalendars] = useState<Calendar[]>([]);
   const [selectedCalendarId, setSelectedCalendarId] = useState<string | null>(
     null
   );
-  if (selectedCalendarId !== null) {
-    console.log(selectedCalendarId);
-  }
 
   const fetchEvents = async () => {
-    const response = await fetch(`http://localhost:5000/api/events`);
-    const data = await response.json();
-    setEvents(data);
+    if (!selectedCalendarId) {
+      console.log("No calendar selected");
+      return;
+    }
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/events?calendar=${encodeURIComponent(
+          selectedCalendarId
+        )}`
+      );
+      if (!response.ok) {
+        throw new Error("Error fetching events");
+      }
+      const data: Event[] = await response.json();
+      setEvents(data);
+      console.log("events", data);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const fetchCalendars = async () => {
     const response = await fetch("http://localhost:5000/api/calendars");
-    const data = await response.json();
+    const data: Calendar[] = await response.json();
     setCalendars(data);
     if (data.length > 0) {
-      setSelectedCalendarId(data[0].id); // Automatically select the first calendar
+      setSelectedCalendarId(data[0].id);
     }
   };
+
+  const handleLogin = async () => {
+    window.open("http://localhost:5000/api/login", "_blank");
+  };
+
+  const getEventFrequency = (recurrence?: string[]): string => {
+    if (!recurrence || recurrence.length === 0) return "One-time event";
+    const rule = recurrence[0];
+    const freqMatch = rule.match(/FREQ=(\w+);/);
+    if (!freqMatch) return "Custom frequency";
+    const freq = freqMatch[1];
+    switch (freq) {
+      case "DAILY":
+        return "Daily";
+      case "WEEKLY":
+        return "Weekly";
+      case "MONTHLY":
+        return "Monthly";
+      case "YEARLY":
+        return "Yearly";
+      default:
+        return "Custom frequency";
+    }
+  };
+
+  const getRelativeTime = (date?: string) => {
+    if (!date) return "No date available";
+    return timeagoFormat(date);
+  };
+
+  const getTimeBetweenInstances = (start?: string, end?: string) => {
+    if (!start || !end) return "N/A";
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return `${diffDays} days`;
+  };
+
+  useEffect(() => {
+    fetchCalendars();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900">
       <header className="bg-blue-500 text-white p-4 shadow-md">
         <h1 className="text-xl font-semibold">My Calendar App</h1>
       </header>
+      <button onClick={handleLogin}>Login</button>
       <main className="p-4">
-        <div className="my-10 space-y-5">
+        <div className="my-10 space-y-10">
           <button
             className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out"
             onClick={fetchCalendars}
@@ -138,15 +181,33 @@ function App() {
               <div className="p-4">
                 <h3 className="text-lg font-semibold">{event.summary}</h3>
                 <p className="text-sm text-gray-600">
-                  Starts: {event.start.date}
+                  Frequency: {getEventFrequency(event.recurrence)}
                 </p>
-                <p className="text-sm text-gray-600">Ends: {event.end.date}</p>
-                <a
-                  href={event.htmlLink}
-                  className="text-blue-500 hover:text-blue-700 transition duration-150 ease-in-out"
-                >
-                  View Event
-                </a>
+                <p className="text-sm text-gray-600">
+                  Last Date:{" "}
+                  {getRelativeTime(event.start.dateTime || event.start.date)}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Next Date:{" "}
+                  {getRelativeTime(event.end.dateTime || event.end.date)}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Time between instances:{" "}
+                  {getTimeBetweenInstances(
+                    event.start.dateTime || event.start.date,
+                    event.end.dateTime || event.end.date
+                  )}
+                </p>
+                {event.htmlLink && (
+                  <a
+                    href={event.htmlLink}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-blue-500 hover:text-blue-700 transition duration-150 ease-in-out"
+                  >
+                    View Event
+                  </a>
+                )}
               </div>
             </div>
           ))}
@@ -154,6 +215,6 @@ function App() {
       </main>
     </div>
   );
-}
+};
 
 export default App;

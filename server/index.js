@@ -1,6 +1,6 @@
 // Load environment variables from a .env file
-
 require("dotenv").config();
+
 // Import required modules
 const express = require("express");
 const { google } = require("googleapis");
@@ -80,29 +80,29 @@ app.get("/api/calendars", (req, res) => {
 
 // Route to list events from a specified calendar
 app.get("/api/events", (req, res) => {
-  // Get the calendar ID from the query string, default to 'primary'
   const calendarId = req.query.calendar ?? "primary";
-  // Create a Google Calendar API client
   const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-  // List events from the specified calendar
+
   calendar.events.list(
     {
       calendarId,
       timeMin: new Date().toISOString(),
-      maxResults: 15,
+      maxResults: 250,
       singleEvents: true,
       orderBy: "startTime",
     },
     (err, response) => {
       if (err) {
-        // Handle error if the API request fails
-        console.error("Can't fetch events");
+        console.error("Can't fetch events", err);
         res.send("Error");
         return;
       }
-      // Send the list of events as JSON
       const events = response.data.items;
-      res.json(events);
+      // Filter out declined events
+      const filteredEvents = events.filter(
+        (event) => event.status !== "cancelled"
+      );
+      res.json(filteredEvents);
     }
   );
 });
