@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { format as timeagoFormat } from "timeago.js";
+import { formatDistance } from "date-fns";
 
 interface Event {
   kind: string;
@@ -22,6 +22,7 @@ interface Event {
   end: { dateTime?: string; date?: string; timeZone?: string };
   recurrence?: string[];
   recurringEventId?: string;
+  originalStartTime?: { date: string };
   iCalUID: string;
   sequence: number;
   reminders: {
@@ -29,6 +30,7 @@ interface Event {
     overrides?: { method: string; minutes: number }[];
   };
   eventType: string;
+  transparency?: string;
 }
 
 interface Calendar {
@@ -82,11 +84,18 @@ const App = () => {
   };
 
   const fetchCalendars = async () => {
-    const response = await fetch("http://localhost:5000/api/calendars");
-    const data: Calendar[] = await response.json();
-    setCalendars(data);
-    if (data.length > 0) {
-      setSelectedCalendarId(data[0].id);
+    try {
+      const response = await fetch("http://localhost:5000/api/calendars");
+      if (!response.ok) {
+        throw new Error("Error fetching calendars");
+      }
+      const data: Calendar[] = await response.json();
+      setCalendars(data);
+      if (data.length > 0) {
+        setSelectedCalendarId(data[0].id);
+      }
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -116,9 +125,8 @@ const App = () => {
 
   const getRelativeTime = (date?: string) => {
     if (!date) return "No date available";
-    return timeagoFormat(date);
+    return formatDistance(new Date(date), new Date(), { addSuffix: true });
   };
-
   const getTimeBetweenInstances = (start?: string, end?: string) => {
     if (!start || !end) return "N/A";
     const startDate = new Date(start);
@@ -126,6 +134,17 @@ const App = () => {
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return `${diffDays} days`;
+  };
+
+  const getLastDate = (start?: string) => {
+    if (!start) return "No date available";
+
+    const startDate = new Date(start);
+    const now = new Date();
+
+    return startDate < now
+      ? formatDistance(startDate, now) + " ago"
+      : "No past instances";
   };
 
   useEffect(() => {
@@ -185,11 +204,11 @@ const App = () => {
                 </p>
                 <p className="text-sm text-gray-600">
                   Last Date:{" "}
-                  {getRelativeTime(event.start.dateTime || event.start.date)}
+                  {getLastDate(event.start.dateTime || event.start.date)}
                 </p>
                 <p className="text-sm text-gray-600">
                   Next Date:{" "}
-                  {getRelativeTime(event.end.dateTime || event.end.date)}
+                  {getRelativeTime(event.start.dateTime || event.start.date)}
                 </p>
                 <p className="text-sm text-gray-600">
                   Time between instances:{" "}
