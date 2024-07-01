@@ -8,7 +8,7 @@ const cors = require("cors");
 
 // Initialize Express app
 const app = express();
-
+const axios = require("axios");
 // Enable CORS
 
 app.use(cors());
@@ -88,8 +88,6 @@ app.get("/api/events", (req, res) => {
       calendarId,
       timeMin: new Date().toISOString(),
       maxResults: 250,
-      singleEvents: true,
-      orderBy: "startTime",
     },
     (err, response) => {
       if (err) {
@@ -104,6 +102,29 @@ app.get("/api/events", (req, res) => {
   );
 });
 
+app.get("/api/revents", async (req, res) => {
+  const calendarId = req.query.calendar || "primary";
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`;
+
+  try {
+    // Make a GET request using Axios
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${oauth2Client.credentials.access_token}`,
+      },
+      params: {
+        timeMin: new Date().toISOString(),
+        maxResults: 250,
+      },
+    });
+
+    const events = response.data.items;
+    res.json(events);
+  } catch (error) {
+    console.error("Error fetching events:", error.message);
+    res.status(500).send("Error fetching events");
+  }
+});
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () =>
