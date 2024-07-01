@@ -9,6 +9,9 @@ import {
   calculateStats,
 } from "./utils";
 
+// initialize dotenv
+
+const serverurl = "http://localhost:5000";
 const App: React.FC = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [calendars, setCalendars] = useState<any[]>([]);
@@ -27,7 +30,7 @@ const App: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/events?calendar=${encodeURIComponent(
+        `${serverurl}/api/events?calendar=${encodeURIComponent(
           selectedCalendarId
         )}`
       );
@@ -43,7 +46,7 @@ const App: React.FC = () => {
 
   const fetchCalendars = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/calendars");
+      const response = await fetch(`${serverurl}/api/calendars`);
       if (!response.ok) throw new Error("Error fetching calendars");
 
       const data = await response.json();
@@ -55,7 +58,11 @@ const App: React.FC = () => {
   };
 
   const handleLogin = () => {
-    window.open("http://localhost:5000/api/login", "_blank");
+    window.open(`${serverurl}/api/login`, "_self");
+  };
+
+  const handleLogout = () => {
+    window.open(`${serverurl}/api/logout`, "_self");
   };
 
   const filterEvents = (events: any[]) => {
@@ -106,7 +113,7 @@ const App: React.FC = () => {
         <h1 className="text-xl font-semibold">My Calendar App</h1>
         <button
           onClick={handleLogin}
-          className="m-4 p-2 bg-blue-500 text-white rounded"
+          className="m-4 px-7 py-3 bg-green-500 text-white rounded"
         >
           Login
         </button>
