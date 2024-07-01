@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import ReactTimeAgo from "react-time-ago";
 import {
   getPlainEnglishFrequency,
@@ -9,9 +9,8 @@ import {
   calculateStats,
 } from "./utils";
 
-// initialize dotenv
-
 const serverurl = "http://localhost:5000";
+
 const App: React.FC = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [calendars, setCalendars] = useState<any[]>([]);
@@ -21,12 +20,13 @@ const App: React.FC = () => {
   const [filter, setFilter] = useState<string>("all");
   const [sortOption, setSortOption] = useState<string>("nextDate");
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
+
   useEffect(() => {
     fetchCalendars();
     checkLoginStatus();
   }, []);
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     if (!selectedCalendarId) return;
 
     try {
@@ -43,7 +43,11 @@ const App: React.FC = () => {
     } catch (error) {
       console.error(error);
     }
-  };
+  }, [selectedCalendarId]);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [selectedCalendarId, fetchEvents]);
 
   const fetchCalendars = async () => {
     try {
@@ -92,6 +96,7 @@ const App: React.FC = () => {
       );
     return events;
   };
+
   const sortEvents = (events: any[]) => {
     switch (sortOption) {
       case "nextDate":
@@ -124,19 +129,19 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900">
-      <header className="bg-blue-500 text-white p-4 shadow-md flex justify-between items-center">
+      <header className="bg-blue-500 text-white p-2 shadow-md flex justify-between items-center">
         <h1 className="text-xl font-semibold">My Calendar App</h1>
         {loggedIn ? (
           <button
             onClick={handleLogout}
-            className="m-4 px-7 py-3 bg-red-500 text-white rounded"
+            className="m-4 px-7 py-2 bg-red-500 text-white  rounded-md"
           >
             Logout
           </button>
         ) : (
           <button
             onClick={handleLogin}
-            className="m-4 px-7 py-3 bg-green-500 text-white rounded"
+            className="m-4 px-7 py-3 bg-green-500 text-white rounded-md"
           >
             Login
           </button>
@@ -144,57 +149,61 @@ const App: React.FC = () => {
       </header>
 
       <main className="p-4">
-        <div className="my-10 space-y-10">
+        {/* <div className="my-10 space-y-10">
           <div className="flex justify-between">
-            <h2 className="text-lg font-semibold mb-4">Calendars</h2>
             <div className="flex flex-wrap">
-              {calendars.map((calendar: any) => (
-                <label
-                  key={calendar.id}
-                  className="flex items-center mb-2 mr-2"
-                >
-                  <input
-                    type="radio"
-                    name="calendar"
-                    value={calendar.id}
-                    checked={selectedCalendarId === calendar.id}
-                    onChange={() => setSelectedCalendarId(calendar.id)}
-                    className="form-radio h-5 w-5 text-green-600"
-                  />
-                  <span className="ml-2 text-gray-700">{calendar.summary}</span>
-                </label>
-              ))}
+              <select
+                value={selectedCalendarId || ""}
+                onChange={(e) => setSelectedCalendarId(e.target.value)}
+                className="ml-2 bg-white border border-gray-300 rounded px-3 py-1"
+              >
+                {calendars.map((calendar: any) => (
+                  <option key={calendar.id} value={calendar.id}>
+                    {calendar.summary}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
+        </div> */}
+        <div className="flex flex-row justify-between items-center mb-4">
+          <p className="text-gray-600">
+            Total Recurring Events: {stats.totalRecurringEvents}
+          </p>
+          <p className="text-gray-600">
+            Total Instances Per Year: {stats.totalInstancesPerYear}
+          </p>
         </div>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Events</h2>
-          <button
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out"
-            onClick={fetchEvents}
-          >
-            Fetch Events
-          </button>
-        </div>
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 font-mediums">
           <label className="mr-2">
             Filter by:
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="ml-2 bg-white border border-gray-300 rounded px-3 py-1"
+              className="ml-2 bg-white border border-gray-300 rounded px-3 py-1 cursor-pointer"
             >
               <option value="all">All</option>
               <option value="recurring">Recurring</option>
               <option value="non-recurring">Non-Recurring</option>
             </select>
           </label>
+          <select
+            value={selectedCalendarId || ""}
+            onChange={(e) => setSelectedCalendarId(e.target.value)}
+            className="ml-2 bg-white border border-gray-300 rounded px-3 py-1 cursor-pointer"
+          >
+            {calendars.map((calendar: any) => (
+              <option key={calendar.id} value={calendar.id}>
+                {calendar.summary}
+              </option>
+            ))}
+          </select>
           <label className="mr-2">
             Sort by:
             <select
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value)}
-              className="ml-2 bg-white border border-gray-300 rounded px-3 py-1"
+              className="ml-2 bg-white border border-gray-300 rounded px-3 py-1 cursor-pointer"
             >
               <option value="nextDate">Next Instance Date</option>
               <option value="alphabetical">Alphabetical</option>
@@ -253,14 +262,6 @@ const App: React.FC = () => {
             ))}
           </tbody>
         </table>
-        <div className="mt-4">
-          <p className="text-gray-600">
-            Total Recurring Events: {stats.totalRecurringEvents}
-          </p>
-          <p className="text-gray-600">
-            Total Instances Per Year: {stats.totalInstancesPerYear}
-          </p>
-        </div>
       </main>
     </div>
   );

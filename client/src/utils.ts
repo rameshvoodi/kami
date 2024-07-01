@@ -24,17 +24,17 @@ export const getPlainEnglishFrequency = (event: any): string => {
         return "Custom frequency";
     }
   }
-  return "No recurrence"; // Update to "Once" or another default value for non-recurring events
+  return "No recurrence"; 
 };
 
 export const getNextInstanceDate = (event: any): Date | null => {
   if (event.recurrence && event.recurrence.length > 0) {
     const rule = rrulestr(event.recurrence[0]);
     const now = new Date();
-    const nextInstance = rule.after(now, true); // Adjust true/false depending on whether inclusive or exclusive matching is needed
+    const nextInstance = rule.after(now, true); 
     return nextInstance || null;
   }
-  return new Date(event.start.dateTime || event.start.date); // Adjust to handle non-recurring events
+  return new Date(event.start.dateTime || event.start.date); 
 };
 
 
@@ -43,7 +43,7 @@ export const getLastInstanceDate = (event: any): Date | null => {
   if (event.recurrence && event.recurrence.length > 0) {
     const rule = rrulestr(event.recurrence[0]);
     const now = new Date();
-    const lastInstance = rule.before(now, true); // Adjust true/false depending on whether inclusive or exclusive matching is needed
+    const lastInstance = rule.before(now, true); 
     return lastInstance || null;
   } else {
     return event.end.dateTime ? new Date(event.end.dateTime) : new Date(event.end.date);
@@ -68,7 +68,7 @@ export const calculateEventsInNext12Months = (event: any): number => {
     const instances = rule.between(now, nextYear);
     return instances.length;
   }
-  return 1; // Non-recurring events have one instance
+  return 1; 
 };
 
 export const calculateStats = (events: any[]): { totalRecurringEvents: number, totalInstancesPerYear: number } => {
