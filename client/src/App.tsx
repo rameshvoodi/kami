@@ -223,7 +223,7 @@ const App: React.FC = () => {
 
       <main className="p-4">
         <div className="my-10 space-y-10">
-          <div className="flex flex-row justify-between justify-center">
+          <div className="flex flex-row justify-between">
             <h2 className="text-lg font-semibold mb-4">Calendars</h2>
             <div className="flex flex-wrap">
               {calendars.map((calendar: any) => (
