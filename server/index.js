@@ -51,7 +51,8 @@ app.get("/api/logout", (req, res) => {
       res.status(500).send("Error revoking credentials");
       return;
     }
-    res.send("Logged out successfully");
+    const redirectUrl = process.env.CLIENT_URL || "http://localhost:3000/";
+    res.redirect(redirectUrl);
   });
 });
 
@@ -67,8 +68,7 @@ app.get("/api/redirect", (req, res) => {
 
     oauth2Client.setCredentials(tokens);
 
-    const redirectUrl =
-      process.env.LOGIN_SUCCESS_REDIRECT_URL || "http://localhost:3000/";
+    const redirectUrl = process.env.CLIENT_URL || "http://localhost:3000/";
     res.redirect(redirectUrl);
   });
 });

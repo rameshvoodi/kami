@@ -20,9 +20,10 @@ const App: React.FC = () => {
   );
   const [filter, setFilter] = useState<string>("all");
   const [sortOption, setSortOption] = useState<string>("nextDate");
-
+  const [loggedIn, setLoggedIn] = useState<boolean>(false);
   useEffect(() => {
     fetchCalendars();
+    checkLoginStatus();
   }, []);
 
   const fetchEvents = async () => {
@@ -63,6 +64,20 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     window.open(`${serverurl}/api/logout`, "_self");
+  };
+
+  const checkLoginStatus = async () => {
+    try {
+      const response = await fetch(`${serverurl}/api/check-login`);
+      if (response.ok) {
+        const data = await response.json();
+        setLoggedIn(data.loggedIn);
+      } else {
+        throw new Error("Error checking login status");
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const filterEvents = (events: any[]) => {
@@ -111,12 +126,21 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-gray-100 text-gray-900">
       <header className="bg-blue-500 text-white p-4 shadow-md flex justify-between items-center">
         <h1 className="text-xl font-semibold">My Calendar App</h1>
-        <button
-          onClick={handleLogin}
-          className="m-4 px-7 py-3 bg-green-500 text-white rounded"
-        >
-          Login
-        </button>
+        {loggedIn ? (
+          <button
+            onClick={handleLogout}
+            className="m-4 px-7 py-3 bg-red-500 text-white rounded"
+          >
+            Logout
+          </button>
+        ) : (
+          <button
+            onClick={handleLogin}
+            className="m-4 px-7 py-3 bg-green-500 text-white rounded"
+          >
+            Login
+          </button>
+        )}
       </header>
 
       <main className="p-4">
