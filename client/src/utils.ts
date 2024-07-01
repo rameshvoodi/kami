@@ -1,6 +1,5 @@
 import { rrulestr } from 'rrule';
 
-// Convert ISO date string to local date
 export const toLocalDate = (isoString: string): Date => {
   const [date] = isoString.split('T');
   return new Date(date);
@@ -25,7 +24,7 @@ export const getPlainEnglishFrequency = (event: any): string => {
         return "Custom frequency";
     }
   }
-  return "No recurrence";
+  return "No recurrence"; // Update to "Once" or another default value for non-recurring events
 };
 
 export const getNextInstanceDate = (event: any): Date | null => {
@@ -35,18 +34,23 @@ export const getNextInstanceDate = (event: any): Date | null => {
     const nextInstance = rule.after(now, true); // Adjust true/false depending on whether inclusive or exclusive matching is needed
     return nextInstance || null;
   }
-  return new Date(event.start.dateTime || event.start.date);
+  return new Date(event.start.dateTime || event.start.date); // Adjust to handle non-recurring events
 };
+
+
 
 export const getLastInstanceDate = (event: any): Date | null => {
   if (event.recurrence && event.recurrence.length > 0) {
     const rule = rrulestr(event.recurrence[0]);
     const now = new Date();
-    const lastInstance = rule.before(now, true);
+    const lastInstance = rule.before(now, true); // Adjust true/false depending on whether inclusive or exclusive matching is needed
     return lastInstance || null;
+  } else {
+    return event.end.dateTime ? new Date(event.end.dateTime) : new Date(event.end.date);
   }
-  return new Date(event.end.dateTime || event.end.date);
 };
+
+
 
 export const getTimeBetweenInstances = (lastDate: string, nextDate: string): string => {
   const last = new Date(lastDate);
