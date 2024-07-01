@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
 import ReactTimeAgo from "react-time-ago";
+import {
+  getPlainEnglishFrequency,
+  getNextInstanceDate,
+  getLastInstanceDate,
+  getTimeBetweenInstances,
+  calculateEventsInNext12Months,
+  calculateStats,
+} from "./utils";
 
 const App: React.FC = () => {
   const [events, setEvents] = useState<any[]>([]);
@@ -8,6 +16,7 @@ const App: React.FC = () => {
     null
   );
   const [filter, setFilter] = useState<string>("all");
+  const [sortOption, setSortOption] = useState<string>("nextDate");
 
   useEffect(() => {
     fetchCalendars();
@@ -25,11 +34,10 @@ const App: React.FC = () => {
       if (!response.ok) throw new Error("Error fetching events");
 
       const data = await response.json();
-      console.log(data);
       setEvents(data);
+      console.log(data);
     } catch (error) {
       console.error(error);
-      // Handle error (e.g., show error message to the user)
     }
   };
 
@@ -43,156 +51,12 @@ const App: React.FC = () => {
       if (data.length > 0) setSelectedCalendarId(data[0].id);
     } catch (error) {
       console.error(error);
-      // Handle error (e.g., show error message to the user)
     }
   };
 
   const handleLogin = () => {
     window.open("http://localhost:5000/api/login", "_blank");
   };
-
-  const getEventFrequency = (event: any): string => {
-    if (event.recurrence && event.recurrence.length > 0) {
-      const rule = event.recurrence[0];
-      const freqMatch = rule.match(/FREQ=(\w+);/);
-      if (!freqMatch) return "Custom frequency";
-      const freq = freqMatch[1];
-      switch (freq) {
-        case "DAILY":
-          return "Daily";
-        case "WEEKLY":
-          return "Weekly";
-        case "MONTHLY":
-          return "Monthly";
-        case "YEARLY":
-          return "Yearly";
-        default:
-          return "Custom frequency";
-      }
-    } else if (event.recurringEventId) {
-      return "Recurring instance";
-    }
-    return "One-time event";
-  };
-
-  const getLastDate = (event: any): Date | undefined => {
-    if (event.end) {
-      if (event.end.dateTime) {
-        return new Date(event.end.dateTime);
-      } else if (event.end.date) {
-        return new Date(event.end.date);
-      }
-    }
-    return undefined;
-  };
-
-  const getTimeBetweenInstances = (start?: string, end?: string) => {
-    if (!start || !end) return "N/A";
-
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-    const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30));
-    return `${diffMonths} months`;
-  };
-
-  const getNextInstanceDate = (event: any): Date | null => {
-    if (event.recurrence && event.start && event.start.date) {
-      const now = new Date();
-      const startDate = new Date(event.start.date);
-
-      for (let rule of event.recurrence) {
-        const freqMatch = rule.match(/FREQ=(\w+);/);
-        if (freqMatch) {
-          const freq = freqMatch[1];
-          let instanceDate = new Date(startDate);
-
-          while (instanceDate <= now) {
-            switch (freq) {
-              case "DAILY":
-                instanceDate.setDate(instanceDate.getDate() + 1);
-                break;
-              case "WEEKLY":
-                instanceDate.setDate(instanceDate.getDate() + 7);
-                break;
-              case "MONTHLY":
-                instanceDate.setMonth(instanceDate.getMonth() + 1);
-                break;
-              case "YEARLY":
-                instanceDate.setFullYear(instanceDate.getFullYear() + 1);
-                break;
-              default:
-                break;
-            }
-          }
-
-          if (instanceDate > now) {
-            return instanceDate;
-          }
-        }
-      }
-    }
-
-    return null;
-  };
-
-  const calculateEventsInNext12Months = (event: any): number => {
-    const now = new Date();
-    const nextYear = new Date(now);
-    nextYear.setFullYear(now.getFullYear() + 1);
-
-    let count = 0;
-    if (event.recurrence) {
-      event.recurrence.forEach((rule: string) => {
-        const freqMatch = rule.match(/FREQ=(\w+);/);
-        if (freqMatch) {
-          const freq = freqMatch[1];
-          const startDate = new Date(event.start.date);
-          let instanceDate = new Date(startDate);
-
-          while (instanceDate <= nextYear) {
-            if (instanceDate > now) {
-              count++;
-            }
-            switch (freq) {
-              case "DAILY":
-                instanceDate.setDate(instanceDate.getDate() + 1);
-                break;
-              case "WEEKLY":
-                instanceDate.setDate(instanceDate.getDate() + 7);
-                break;
-              case "MONTHLY":
-                instanceDate.setMonth(instanceDate.getMonth() + 1);
-                break;
-              case "YEARLY":
-                instanceDate.setFullYear(instanceDate.getFullYear() + 1);
-                break;
-              default:
-                break;
-            }
-          }
-        }
-      });
-    }
-    return count;
-  };
-
-  const calculateStats = (filteredEvents: any[]) => {
-    const recurringEvents = filteredEvents.filter(
-      (event) => event.recurrence || event.recurringEventId
-    );
-    const instancesPerYear = recurringEvents.reduce((sum, event) => {
-      const instances = calculateEventsInNext12Months(event);
-      return sum + instances;
-    }, 0);
-
-    return {
-      totalRecurringEvents: recurringEvents.length,
-      totalInstancesPerYear: instancesPerYear,
-    };
-  };
-
-  const stats = calculateStats(events);
 
   const filterEvents = (events: any[]) => {
     if (filter === "all") return events;
@@ -206,12 +70,39 @@ const App: React.FC = () => {
       );
     return events;
   };
+  const sortEvents = (events: any[]) => {
+    switch (sortOption) {
+      case "nextDate":
+        return events.sort((a, b) => {
+          const aNextDate = getNextInstanceDate(a);
+          const bNextDate = getNextInstanceDate(b);
+          return (
+            (aNextDate ? aNextDate.getTime() : new Date().getTime()) -
+            (bNextDate ? bNextDate.getTime() : new Date().getTime())
+          );
+        });
+      case "alphabetical":
+        return events.sort((a, b) => {
+          const aSummary = a.summary || "";
+          const bSummary = b.summary || "";
+          return aSummary.localeCompare(bSummary);
+        });
+      case "frequency":
+        return events.sort(
+          (a, b) =>
+            calculateEventsInNext12Months(a) - calculateEventsInNext12Months(b)
+        );
+      default:
+        return events;
+    }
+  };
 
-  const filteredEvents = filterEvents(events);
+  const filteredEvents = sortEvents(filterEvents(events));
+  const stats = calculateStats(filteredEvents);
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900">
-      <header className="bg-blue-500 text-white p-4 shadow-md flex flex-row justify-between items-center">
+      <header className="bg-blue-500 text-white p-4 shadow-md flex justify-between items-center">
         <h1 className="text-xl font-semibold">My Calendar App</h1>
         <button
           onClick={handleLogin}
@@ -223,7 +114,7 @@ const App: React.FC = () => {
 
       <main className="p-4">
         <div className="my-10 space-y-10">
-          <div className="flex flex-row justify-between">
+          <div className="flex justify-between">
             <h2 className="text-lg font-semibold mb-4">Calendars</h2>
             <div className="flex flex-wrap">
               {calendars.map((calendar: any) => (
@@ -254,7 +145,7 @@ const App: React.FC = () => {
             Fetch Events
           </button>
         </div>
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-between items-center mb-4">
           <label className="mr-2">
             Filter by:
             <select
@@ -267,54 +158,64 @@ const App: React.FC = () => {
               <option value="non-recurring">Non-Recurring</option>
             </select>
           </label>
+          <label className="mr-2">
+            Sort by:
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              className="ml-2 bg-white border border-gray-300 rounded px-3 py-1"
+            >
+              <option value="nextDate">Next Instance Date</option>
+              <option value="alphabetical">Alphabetical</option>
+              <option value="frequency">Frequency</option>
+            </select>
+          </label>
         </div>
-        <table className="min-w-full bg-white border border-gray-200">
-          <thead className="bg-gray-100">
+        <table className="min-w-full bg-white border border-gray-300">
+          <thead>
             <tr>
-              <th className="border border-gray-300 px-4 py-2">
-                Name of Meeting
-              </th>
-              <th className="border border-gray-300 px-4 py-2">Frequency</th>
-              <th className="border border-gray-300 px-4 py-2">Last Date</th>
-              <th className="border border-gray-300 px-4 py-2">Next Date</th>
-              <th className="border border-gray-300 px-4 py-2">
-                Time Between Instances
-              </th>
-              <th className="border border-gray-300 px-4 py-2">
-                Events in Next 12 Months
-              </th>
+              <th className="py-2 px-4 border-b">Name of Meeting</th>
+              <th className="py-2 px-4 border-b">Frequency</th>
+              <th className="py-2 px-4 border-b">Last Date</th>
+              <th className="py-2 px-4 border-b">Next Date</th>
+              <th className="py-2 px-4 border-b">Time Between Instances</th>
+              <th className="py-2 px-4 border-b">Events in Next 12 Months</th>
             </tr>
           </thead>
           <tbody>
-            {filteredEvents.map((event: any) => (
-              <tr key={event.id}>
-                <td className="border border-gray-300 px-4 py-2">
-                  {event.summary}
+            {filteredEvents.map((event) => (
+              <tr key={event.id} className="hover:bg-gray-100">
+                <td className="py-2 px-4 border-b">{event.summary}</td>
+                <td className="py-2 px-4 border-b">
+                  {getPlainEnglishFrequency(event)}
                 </td>
-                <td className="border border-gray-300 px-4 py-2">
-                  {getEventFrequency(event)}
-                </td>
-                <td className="border border-gray-300 px-4 py-2">
-                  {getLastDate(event) ? (
-                    <ReactTimeAgo date={getLastDate(event) as Date} />
+                <td className="py-2 px-4 border-b">
+                  {getLastInstanceDate(event) ? (
+                    <ReactTimeAgo
+                      date={getLastInstanceDate(event) as Date}
+                      locale="en-US"
+                    />
                   ) : (
-                    "N/A"
+                    "No data"
                   )}
                 </td>
-                <td className="border border-gray-300 px-4 py-2">
+                <td className="py-2 px-4 border-b">
                   {getNextInstanceDate(event) ? (
-                    <ReactTimeAgo date={getNextInstanceDate(event) as Date} />
+                    <ReactTimeAgo
+                      date={getNextInstanceDate(event) as Date}
+                      locale="en-US"
+                    />
                   ) : (
-                    "N/A"
+                    "No data"
                   )}
                 </td>
-                <td className="border border-gray-300 px-4 py-2">
+                <td className="py-2 px-4 border-b">
                   {getTimeBetweenInstances(
-                    event.start?.dateTime,
-                    event.end?.dateTime
+                    event.start.dateTime || event.start.date,
+                    event.end.dateTime || event.end.date
                   )}
                 </td>
-                <td className="border border-gray-300 px-4 py-2">
+                <td className="py-2 px-4 border-b">
                   {calculateEventsInNext12Months(event)}
                 </td>
               </tr>
@@ -322,8 +223,12 @@ const App: React.FC = () => {
           </tbody>
         </table>
         <div className="mt-4">
-          <p>Total Recurring Events: {stats.totalRecurringEvents}</p>
-          <p>Total Instances per Year: {stats.totalInstancesPerYear}</p>
+          <p className="text-gray-600">
+            Total Recurring Events: {stats.totalRecurringEvents}
+          </p>
+          <p className="text-gray-600">
+            Total Instances Per Year: {stats.totalInstancesPerYear}
+          </p>
         </div>
       </main>
     </div>
