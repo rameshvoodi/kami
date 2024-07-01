@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from "react";
 import ReactTimeAgo from "react-time-ago";
 
-const App = () => {
+const App: React.FC = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [calendars, setCalendars] = useState<any[]>([]);
   const [selectedCalendarId, setSelectedCalendarId] = useState<string | null>(
     null
   );
   const [filter, setFilter] = useState<string>("all");
-  const [sortOption, setSortOption] = useState<string>("nextInstanceDate");
 
   useEffect(() => {
     fetchCalendars();
@@ -26,15 +25,11 @@ const App = () => {
       if (!response.ok) throw new Error("Error fetching events");
 
       const data = await response.json();
-      const filteredEvents = filterEvents(data);
-      const recurringEvents = filteredEvents.filter(
-        (event) => event.recurrence || event.recurringEventId
-      );
-      console.log(recurringEvents);
-
-      setEvents(filteredEvents);
+      console.log(data);
+      setEvents(data);
     } catch (error) {
       console.error(error);
+      // Handle error (e.g., show error message to the user)
     }
   };
 
@@ -48,6 +43,7 @@ const App = () => {
       if (data.length > 0) setSelectedCalendarId(data[0].id);
     } catch (error) {
       console.error(error);
+      // Handle error (e.g., show error message to the user)
     }
   };
 
@@ -79,6 +75,17 @@ const App = () => {
     return "One-time event";
   };
 
+  const getLastDate = (event: any): Date | undefined => {
+    if (event.end) {
+      if (event.end.dateTime) {
+        return new Date(event.end.dateTime);
+      } else if (event.end.date) {
+        return new Date(event.end.date);
+      }
+    }
+    return undefined;
+  };
+
   const getTimeBetweenInstances = (start?: string, end?: string) => {
     if (!start || !end) return "N/A";
 
@@ -89,24 +96,11 @@ const App = () => {
     return `${diffMonths} months`;
   };
 
-  const getLastDate = (event: any): Date | undefined => {
-    if (event.end && event.end.date) {
-      return new Date(event.end.date);
-    }
-    return undefined;
-  };
-
   const getNextInstanceDate = (event: any): Date | null => {
     if (event.recurrence && event.start && event.start.date) {
       const now = new Date();
       const startDate = new Date(event.start.date);
 
-      // Ensure to handle initial startDate comparison correctly
-      if (startDate > now) {
-        return startDate;
-      }
-
-      // Iterate through recurrence rules to find next instance
       for (let rule of event.recurrence) {
         const freqMatch = rule.match(/FREQ=(\w+);/);
         if (freqMatch) {
@@ -132,7 +126,6 @@ const App = () => {
             }
           }
 
-          // Found the next instance date that is in the future
           if (instanceDate > now) {
             return instanceDate;
           }
@@ -140,7 +133,7 @@ const App = () => {
       }
     }
 
-    return null; // Return null if no future instances found
+    return null;
   };
 
   const calculateEventsInNext12Months = (event: any): number => {
@@ -151,12 +144,12 @@ const App = () => {
     let count = 0;
     if (event.recurrence) {
       event.recurrence.forEach((rule: string) => {
-        // Assuming only one rule for simplicity
         const freqMatch = rule.match(/FREQ=(\w+);/);
         if (freqMatch) {
           const freq = freqMatch[1];
           const startDate = new Date(event.start.date);
           let instanceDate = new Date(startDate);
+
           while (instanceDate <= nextYear) {
             if (instanceDate > now) {
               count++;
@@ -201,115 +194,55 @@ const App = () => {
 
   const stats = calculateStats(events);
 
-  const filterEvents = (events: any[]): any[] => {
-    const now = new Date();
-    const nextYear = new Date(now);
-    nextYear.setFullYear(now.getFullYear() + 1);
-
-    return events.filter((event) => {
-      if (!event.recurrence) return false; // Filter out non-recurring events
-      // Check if any instance in the next 12 months is not declined
-      const freqMatch = event.recurrence[0].match(/FREQ=(\w+);/);
-      if (freqMatch) {
-        const freq = freqMatch[1];
-        const startDate = new Date(event.start.date);
-        let instanceDate = new Date(startDate);
-        while (instanceDate <= nextYear) {
-          if (instanceDate > now) {
-            return true;
-          }
-          switch (freq) {
-            case "DAILY":
-              instanceDate.setDate(instanceDate.getDate() + 1);
-              break;
-            case "WEEKLY":
-              instanceDate.setDate(instanceDate.getDate() + 7);
-              break;
-            case "MONTHLY":
-              instanceDate.setMonth(instanceDate.getMonth() + 1);
-              break;
-            case "YEARLY":
-              instanceDate.setFullYear(instanceDate.getFullYear() + 1);
-              break;
-            default:
-              break;
-          }
-        }
-      }
-      return false;
-    });
+  const filterEvents = (events: any[]) => {
+    if (filter === "all") return events;
+    if (filter === "recurring")
+      return events.filter(
+        (event) => event.recurrence || event.recurringEventId
+      );
+    if (filter === "non-recurring")
+      return events.filter(
+        (event) => !event.recurrence && !event.recurringEventId
+      );
+    return events;
   };
 
-  const sortEvents = (events: any[]): any[] => {
-    switch (sortOption) {
-      case "nextInstanceDate":
-        return events.sort((a, b) => {
-          const nextDateA = getNextInstanceDate(a);
-          const nextDateB = getNextInstanceDate(b);
-          if (nextDateA && nextDateB) {
-            return nextDateA.getTime() - nextDateB.getTime();
-          }
-          return 0;
-        });
-      case "alphabetical":
-        return events.sort((a, b) => a.summary.localeCompare(b.summary));
-      case "frequencyAsc":
-        return events.sort((a, b) => {
-          const eventsInNext12MonthsA = calculateEventsInNext12Months(a);
-          const eventsInNext12MonthsB = calculateEventsInNext12Months(b);
-          return eventsInNext12MonthsA - eventsInNext12MonthsB;
-        });
-      case "frequencyDesc":
-        return events.sort((a, b) => {
-          const eventsInNext12MonthsA = calculateEventsInNext12Months(a);
-          const eventsInNext12MonthsB = calculateEventsInNext12Months(b);
-          return eventsInNext12MonthsB - eventsInNext12MonthsA;
-        });
-      default:
-        return events;
-    }
-  };
-
-  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSortOption(e.target.value);
-  };
-
-  const sortedEvents = sortEvents(events);
+  const filteredEvents = filterEvents(events);
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900">
-      <header className="bg-blue-500 text-white p-4 shadow-md">
+      <header className="bg-blue-500 text-white p-4 shadow-md flex flex-row justify-between items-center">
         <h1 className="text-xl font-semibold">My Calendar App</h1>
+        <button
+          onClick={handleLogin}
+          className="m-4 p-2 bg-blue-500 text-white rounded"
+        >
+          Login
+        </button>
       </header>
-      <button
-        onClick={handleLogin}
-        className="m-4 p-2 bg-blue-500 text-white rounded"
-      >
-        Login
-      </button>
+
       <main className="p-4">
         <div className="my-10 space-y-10">
-          <button
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out"
-            onClick={fetchCalendars}
-          >
-            Fetch Calendars
-          </button>
-          <h2 className="text-lg font-semibold mb-4">Calendars</h2>
-          <div className="flex flex-wrap">
-            {calendars.map((calendar: any) => (
-              <label key={calendar.id} className="flex items-center mb-2 mr-2">
-                <input
-                  type="radio"
-                  name="calendar"
-                  value={calendar.id}
-                  checked={selectedCalendarId === calendar.id}
-                  onChange={() => setSelectedCalendarId(calendar.id)}
-                  className="form-radio h-5 w-5 text-green-600"
-                />
-                <span className="ml-2 text-gray-700">{calendar.summary}</span>
-              </label>
-            ))}
+          <div className="flex flex-row justify-between justify-center">
+            <h2 className="text-lg font-semibold mb-4">Calendars</h2>
+            <div className="flex flex-wrap">
+              {calendars.map((calendar: any) => (
+                <label
+                  key={calendar.id}
+                  className="flex items-center mb-2 mr-2"
+                >
+                  <input
+                    type="radio"
+                    name="calendar"
+                    value={calendar.id}
+                    checked={selectedCalendarId === calendar.id}
+                    onChange={() => setSelectedCalendarId(calendar.id)}
+                    className="form-radio h-5 w-5 text-green-600"
+                  />
+                  <span className="ml-2 text-gray-700">{calendar.summary}</span>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
         <div className="flex justify-between items-center mb-4">
@@ -321,75 +254,77 @@ const App = () => {
             Fetch Events
           </button>
         </div>
-        <div className="mb-4">
-          <p>Total Recurring Events: {stats.totalRecurringEvents}</p>
-          <p>Total Instances per Year: {stats.totalInstancesPerYear}</p>
+        <div className="flex justify-end mb-4">
+          <label className="mr-2">
+            Filter by:
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="ml-2 bg-white border border-gray-300 rounded px-3 py-1"
+            >
+              <option value="all">All</option>
+              <option value="recurring">Recurring</option>
+              <option value="non-recurring">Non-Recurring</option>
+            </select>
+          </label>
         </div>
-        <div className="mb-4">
-          <label className="mr-4">Filter Events:</label>
-          <select
-            className="p-2 border rounded"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          >
-            <option value="all">All Events</option>
-            <option value="recurring">Recurring Events</option>
-            <option value="non-recurring">Non-recurring Events</option>
-          </select>
-        </div>
-        <div className="mb-4">
-          <label className="mr-4">Sort Events:</label>
-          <select
-            className="p-2 border rounded"
-            value={sortOption}
-            onChange={handleSortChange}
-          >
-            <option value="nextInstanceDate">Next Instance Date (Asc)</option>
-            <option value="alphabetical">Alphabetical (Asc)</option>
-            <option value="frequencyAsc">Frequency (Asc)</option>
-            <option value="frequencyDesc">Frequency (Desc)</option>
-          </select>
-        </div>
-        <table className="min-w-full bg-white border rounded-md shadow-md">
-          <thead>
+        <table className="min-w-full bg-white border border-gray-200">
+          <thead className="bg-gray-100">
             <tr>
-              <th className="py-2 px-4 border-b">Name of Meeting</th>
-              <th className="py-2 px-4 border-b">Frequency</th>
-              <th className="py-2 px-4 border-b">Last Date</th>
-              <th className="py-2 px-4 border-b">Next Date</th>
-              <th className="py-2 px-4 border-b">Time Between Instances</th>
-              <th className="py-2 px-4 border-b">Events in Next 12 Months</th>
+              <th className="border border-gray-300 px-4 py-2">
+                Name of Meeting
+              </th>
+              <th className="border border-gray-300 px-4 py-2">Frequency</th>
+              <th className="border border-gray-300 px-4 py-2">Last Date</th>
+              <th className="border border-gray-300 px-4 py-2">Next Date</th>
+              <th className="border border-gray-300 px-4 py-2">
+                Time Between Instances
+              </th>
+              <th className="border border-gray-300 px-4 py-2">
+                Events in Next 12 Months
+              </th>
             </tr>
           </thead>
           <tbody>
-            {sortedEvents.map((event: any) => {
-              const lastDate = getLastDate(event);
-              const nextDate = getNextInstanceDate(event);
-              const timeBetweenInstances = getTimeBetweenInstances(
-                event.start?.date,
-                event.end?.date
-              );
-              const eventsInNext12Months = calculateEventsInNext12Months(event);
-
-              return (
-                <tr key={event.id}>
-                  <td className="py-2 px-4 border-b">{event.summary}</td>
-                  <td className="py-2 px-4 border-b">
-                    {getEventFrequency(event)}
-                  </td>
-                  <td className="py-2 px-4 border-b">
-                    {lastDate ? <ReactTimeAgo date={lastDate} /> : "N/A"}
-                  </td>
-                  <td className="py-2 px-4 border-b">
-                    {nextDate ? <ReactTimeAgo date={nextDate} /> : "N/A"}
-                  </td>
-                  <td className="py-2 px-4 border-b">{timeBetweenInstances}</td>
-                  <td className="py-2 px-4 border-b">{eventsInNext12Months}</td>
-                </tr>
-              );
-            })}
+            {filteredEvents.map((event: any) => (
+              <tr key={event.id}>
+                <td className="border border-gray-300 px-4 py-2">
+                  {event.summary}
+                </td>
+                <td className="border border-gray-300 px-4 py-2">
+                  {getEventFrequency(event)}
+                </td>
+                <td className="border border-gray-300 px-4 py-2">
+                  {getLastDate(event) ? (
+                    <ReactTimeAgo date={getLastDate(event) as Date} />
+                  ) : (
+                    "N/A"
+                  )}
+                </td>
+                <td className="border border-gray-300 px-4 py-2">
+                  {getNextInstanceDate(event) ? (
+                    <ReactTimeAgo date={getNextInstanceDate(event) as Date} />
+                  ) : (
+                    "N/A"
+                  )}
+                </td>
+                <td className="border border-gray-300 px-4 py-2">
+                  {getTimeBetweenInstances(
+                    event.start?.dateTime,
+                    event.end?.dateTime
+                  )}
+                </td>
+                <td className="border border-gray-300 px-4 py-2">
+                  {calculateEventsInNext12Months(event)}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
+        <div className="mt-4">
+          <p>Total Recurring Events: {stats.totalRecurringEvents}</p>
+          <p>Total Instances per Year: {stats.totalInstancesPerYear}</p>
+        </div>
       </main>
     </div>
   );
