@@ -27,6 +27,11 @@ const App = () => {
 
       const data = await response.json();
       const filteredEvents = filterEvents(data);
+      const recurringEvents = filteredEvents.filter(
+        (event) => event.recurrence || event.recurringEventId
+      );
+      console.log(recurringEvents);
+
       setEvents(filteredEvents);
     } catch (error) {
       console.error(error);
@@ -92,14 +97,50 @@ const App = () => {
   };
 
   const getNextInstanceDate = (event: any): Date | null => {
-    if (event.recurrence && event.start.date) {
+    if (event.recurrence && event.start && event.start.date) {
       const now = new Date();
       const startDate = new Date(event.start.date);
+
+      // Ensure to handle initial startDate comparison correctly
       if (startDate > now) {
         return startDate;
       }
+
+      // Iterate through recurrence rules to find next instance
+      for (let rule of event.recurrence) {
+        const freqMatch = rule.match(/FREQ=(\w+);/);
+        if (freqMatch) {
+          const freq = freqMatch[1];
+          let instanceDate = new Date(startDate);
+
+          while (instanceDate <= now) {
+            switch (freq) {
+              case "DAILY":
+                instanceDate.setDate(instanceDate.getDate() + 1);
+                break;
+              case "WEEKLY":
+                instanceDate.setDate(instanceDate.getDate() + 7);
+                break;
+              case "MONTHLY":
+                instanceDate.setMonth(instanceDate.getMonth() + 1);
+                break;
+              case "YEARLY":
+                instanceDate.setFullYear(instanceDate.getFullYear() + 1);
+                break;
+              default:
+                break;
+            }
+          }
+
+          // Found the next instance date that is in the future
+          if (instanceDate > now) {
+            return instanceDate;
+          }
+        }
+      }
     }
-    return null;
+
+    return null; // Return null if no future instances found
   };
 
   const calculateEventsInNext12Months = (event: any): number => {
