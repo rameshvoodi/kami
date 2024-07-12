@@ -4,6 +4,9 @@
 
 please head to [Google calendar Docs](https://developers.google.com/calendar/api/quickstart/js) to obtain `CLIENT_ID` and `CLIENT_SECRET`
 
+# enable scopes in the google console
+
+make sure to enable required scopes in the google console, you can find the scopes in the `server/src/index.ts` file
 
 ## edit the server/.env file
 
@@ -23,9 +26,21 @@ head to `server` folder and run these commands in terminal:
 cd server
 
 npm install
-
-npm start
 ```
+
+to run the using TS file directly, run this command:
+
+```bash
+npm run dev
+```
+
+to run the using JS file directly, run this command:
+
+```bash
+npm run build
+npm run start
+``` 
+
 ## Make sure to paste the `redirect url` in the google console `authorized redirect URIs`
 
 * go to [Google console](https://console.cloud.google.com/apis/credentials?project) and paste the `redirect url` in the `authorized redirect URIs` 

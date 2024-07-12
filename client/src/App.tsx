@@ -20,34 +20,66 @@ const App: React.FC = () => {
   const [filter, setFilter] = useState<string>("all");
   const [sortOption, setSortOption] = useState<string>("nextDate");
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCalendars();
     checkLoginStatus();
   }, []);
 
-  const fetchEvents = useCallback(async () => {
-    if (!selectedCalendarId) return;
+  const fetchEvents = useCallback(
+    async (pageToken?: string) => {
+      if (!selectedCalendarId) return;
+      setLoading(true);
+      setError(null);
 
-    try {
-      const response = await fetch(
-        `${serverurl}/api/events?calendar=${encodeURIComponent(
-          selectedCalendarId
-        )}`
-      );
-      if (!response.ok) throw new Error("Error fetching events");
+      try {
+        const params = new URLSearchParams({
+          calendar: selectedCalendarId,
+          timeMin: new Date().toISOString(),
+          maxResults: "2500",
+          orderBy: sortOption === "startTime" ? "startTime" : "updated",
+          showDeleted: "false",
+          singleEvents: "false",
+        });
 
-      const data = await response.json();
-      setEvents(data);
-      console.log(data);
-    } catch (error) {
-      console.error(error);
-    }
-  }, [selectedCalendarId]);
+        if (pageToken) {
+          params.append("pageToken", pageToken);
+        }
 
+        const response = await fetch(`${serverurl}/api/events?${params}`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Error fetching events");
+        }
+
+        const data = await response.json();
+        console.log(data);
+
+        setEvents((prevEvents) => {
+          const newEvents = [...prevEvents, ...data.events];
+          return Array.from(
+            new Map(newEvents.map((event) => [event.id, event])).values()
+          );
+        });
+
+        if (data.nextPageToken) {
+          await fetchEvents(data.nextPageToken);
+        }
+      } catch (error: any) {
+        console.error(error);
+        setError(error.message || "Failed to fetch events. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [selectedCalendarId, sortOption]
+  );
   useEffect(() => {
+    setEvents([]);
     fetchEvents();
-  }, [selectedCalendarId, fetchEvents]);
+  }, [selectedCalendarId, sortOption, filter, fetchEvents]);
 
   const fetchCalendars = async () => {
     try {
@@ -55,8 +87,22 @@ const App: React.FC = () => {
       if (!response.ok) throw new Error("Error fetching calendars");
 
       const data = await response.json();
-      setCalendars(data);
-      if (data.length > 0) setSelectedCalendarId(data[0].id);
+
+      const sortedCalendars = data.sort((a: any, b: any) =>
+        a.summary.localeCompare(b.summary)
+      );
+
+      const primaryCalendar = sortedCalendars.find(
+        (calendar: any) => calendar.primary
+      );
+
+      setCalendars(sortedCalendars);
+
+      if (primaryCalendar) {
+        setSelectedCalendarId(primaryCalendar.id);
+      } else if (sortedCalendars.length > 0) {
+        setSelectedCalendarId(sortedCalendars[0].id);
+      }
     } catch (error) {
       console.error(error);
     }
@@ -88,11 +134,19 @@ const App: React.FC = () => {
     if (filter === "all") return events;
     if (filter === "recurring")
       return events.filter(
-        (event) => event.recurrence || event.recurringEventId
+        (event) =>
+          event.recurrence ||
+          (event.recurringEventId && !event.recurringEventExceptions) ||
+          (Array.isArray(event.recurringEventExceptions) &&
+            event.recurringEventExceptions.length > 0)
       );
     if (filter === "non-recurring")
       return events.filter(
-        (event) => !event.recurrence && !event.recurringEventId
+        (event) =>
+          !event.recurrence &&
+          !event.recurringEventId &&
+          (!event.recurringEventExceptions ||
+            event.recurringEventExceptions.length === 0)
       );
     return events;
   };
@@ -130,7 +184,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900">
       <header className="bg-blue-500 text-white p-2 shadow-md flex justify-between items-center">
-        <h1 className="text-xl font-semibold">My Calendar App</h1>
+        <h1 className="text-xl font-semibold mx-3">My Calendar App</h1>
         {loggedIn ? (
           <button
             onClick={handleLogout}
@@ -194,7 +248,7 @@ const App: React.FC = () => {
           >
             {calendars.map((calendar: any) => (
               <option key={calendar.id} value={calendar.id}>
-                {calendar.summary}
+                {calendar.summary} {calendar.primary ? "(Primary)" : ""}
               </option>
             ))}
           </select>
@@ -211,6 +265,8 @@ const App: React.FC = () => {
             </select>
           </label>
         </div>
+        {loading && <p>Loading...</p>}
+        {error && <p className="text-red-500">{error}</p>}
         <table className="min-w-full bg-white border border-gray-300">
           <thead>
             <tr>
@@ -222,9 +278,13 @@ const App: React.FC = () => {
               <th className="py-2 px-4 border-b">Events in Next 12 Months</th>
             </tr>
           </thead>
+
           <tbody>
             {filteredEvents.map((event) => (
-              <tr key={event.id} className="hover:bg-gray-100">
+              <tr
+                key={`${event.id}-${event.recurringEventId || ""}`}
+                className="hover:bg-gray-100"
+              >
                 <td className="py-2 px-4 border-b">{event.summary}</td>
                 <td className="py-2 px-4 border-b">
                   {getPlainEnglishFrequency(event)}
@@ -236,7 +296,7 @@ const App: React.FC = () => {
                       locale="en-US"
                     />
                   ) : (
-                    "No data"
+                    "Not yet started"
                   )}
                 </td>
                 <td className="py-2 px-4 border-b">
@@ -250,10 +310,7 @@ const App: React.FC = () => {
                   )}
                 </td>
                 <td className="py-2 px-4 border-b">
-                  {getTimeBetweenInstances(
-                    event.start.dateTime || event.start.date,
-                    event.end.dateTime || event.end.date
-                  )}
+                  {getTimeBetweenInstances(event)}
                 </td>
                 <td className="py-2 px-4 border-b">
                   {calculateEventsInNext12Months(event)}
