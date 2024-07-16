@@ -242,7 +242,7 @@ const App: React.FC = () => {
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0 md:space-x-4">
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px] shadow-md">
               <SelectValue placeholder="Filter by" />
             </SelectTrigger>
             <SelectContent>
@@ -256,7 +256,7 @@ const App: React.FC = () => {
             value={selectedCalendarId || ""}
             onValueChange={setSelectedCalendarId}
           >
-            <SelectTrigger className="w-[250px]">
+            <SelectTrigger className="w-[350px] shadow-md">
               <SelectValue placeholder="Select a calendar" />
             </SelectTrigger>
             <SelectContent>
@@ -269,7 +269,7 @@ const App: React.FC = () => {
           </Select>
 
           <Select value={sortOption} onValueChange={setSortOption}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px] shadow-md">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
