@@ -7,7 +7,29 @@ import {
   getTimeBetweenInstances,
   calculateEventsInNext12Months,
   calculateStats,
-} from "./utils";
+} from "./lib/vitals";
+import { Button } from "../src/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../src/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../src/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../src/components/ui/card";
 
 const serverurl = "http://localhost:5000";
 
@@ -183,142 +205,128 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900">
-      <header className="bg-blue-500 text-white p-2 shadow-md flex justify-between items-center">
-        <h1 className="text-xl font-semibold mx-3">My Calendar App</h1>
+      <header className="bg-blue-500 text-white py-3 px-7  shadow-md flex justify-between items-center">
+        <h1 className="text-2xl font-semibold">My Calendar App</h1>
         {loggedIn ? (
-          <button
-            onClick={handleLogout}
-            className="m-4 px-7 py-2 bg-red-500 text-white  rounded-md"
-          >
+          <Button variant="destructive" onClick={handleLogout}>
             Logout
-          </button>
+          </Button>
         ) : (
-          <button
-            onClick={handleLogin}
-            className="m-4 px-7 py-3 bg-green-500 text-white rounded-md"
-          >
+          <Button variant="default" onClick={handleLogin}>
             Login
-          </button>
+          </Button>
         )}
       </header>
 
-      <main className="p-4">
-        {/* <div className="my-10 space-y-10">
-          <div className="flex justify-between">
-            <div className="flex flex-wrap">
-              <select
-                value={selectedCalendarId || ""}
-                onChange={(e) => setSelectedCalendarId(e.target.value)}
-                className="ml-2 bg-white border border-gray-300 rounded px-3 py-1"
-              >
-                {calendars.map((calendar: any) => (
-                  <option key={calendar.id} value={calendar.id}>
-                    {calendar.summary}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div> */}
-        <div className="flex flex-row justify-between items-center mb-4">
-          <p className="text-gray-600">
-            Total Recurring Events: {stats.totalRecurringEvents}
-          </p>
-          <p className="text-gray-600">
-            Total Instances Per Year: {stats.totalInstancesPerYear}
-          </p>
+      <main className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Recurring Events</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">{stats.totalRecurringEvents}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Instances Per Year</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">
+                {stats.totalInstancesPerYear}
+              </p>
+            </CardContent>
+          </Card>
         </div>
-        <div className="flex justify-between items-center mb-4 font-mediums">
-          <label className="mr-2">
-            Filter by:
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="ml-2 bg-white border border-gray-300 rounded px-3 py-1 cursor-pointer"
-            >
-              <option value="all">All</option>
-              <option value="recurring">Recurring</option>
-              <option value="non-recurring">Non-Recurring</option>
-            </select>
-          </label>
-          <select
+
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0 md:space-x-4">
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="recurring">Recurring</SelectItem>
+              <SelectItem value="non-recurring">Non-Recurring</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
             value={selectedCalendarId || ""}
-            onChange={(e) => setSelectedCalendarId(e.target.value)}
-            className="ml-2 bg-white border border-gray-300 rounded px-3 py-1 cursor-pointer"
+            onValueChange={setSelectedCalendarId}
           >
-            {calendars.map((calendar: any) => (
-              <option key={calendar.id} value={calendar.id}>
-                {calendar.summary} {calendar.primary ? "(Primary)" : ""}
-              </option>
-            ))}
-          </select>
-          <label className="mr-2">
-            Sort by:
-            <select
-              value={sortOption}
-              onChange={(e) => setSortOption(e.target.value)}
-              className="ml-2 bg-white border border-gray-300 rounded px-3 py-1 cursor-pointer"
-            >
-              <option value="nextDate">Next Instance Date</option>
-              <option value="alphabetical">Alphabetical</option>
-              <option value="frequency">Frequency</option>
-            </select>
-          </label>
+            <SelectTrigger className="w-[250px]">
+              <SelectValue placeholder="Select a calendar" />
+            </SelectTrigger>
+            <SelectContent>
+              {calendars.map((calendar: any) => (
+                <SelectItem key={calendar.id} value={calendar.id}>
+                  {calendar.summary} {calendar.primary ? "(Primary)" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={sortOption} onValueChange={setSortOption}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="nextDate">Next Instance Date</SelectItem>
+              <SelectItem value="alphabetical">Alphabetical</SelectItem>
+              <SelectItem value="frequency">Frequency</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+
         {loading && <p>Loading...</p>}
         {error && <p className="text-red-500">{error}</p>}
-        <table className="min-w-full bg-white border border-gray-300">
-          <thead>
-            <tr>
-              <th className="py-2 px-4 border-b">Name of Meeting</th>
-              <th className="py-2 px-4 border-b">Frequency</th>
-              <th className="py-2 px-4 border-b">Last Date</th>
-              <th className="py-2 px-4 border-b">Next Date</th>
-              <th className="py-2 px-4 border-b">Time Between Instances</th>
-              <th className="py-2 px-4 border-b">Events in Next 12 Months</th>
-            </tr>
-          </thead>
 
-          <tbody>
-            {filteredEvents.map((event) => (
-              <tr
-                key={`${event.id}-${event.recurringEventId || ""}`}
-                className="hover:bg-gray-100"
-              >
-                <td className="py-2 px-4 border-b">{event.summary}</td>
-                <td className="py-2 px-4 border-b">
-                  {getPlainEnglishFrequency(event)}
-                </td>
-                <td className="py-2 px-4 border-b">
-                  {getLastInstanceDate(event) ? (
-                    <ReactTimeAgo
-                      date={getLastInstanceDate(event) as Date}
-                      locale="en-US"
-                    />
-                  ) : (
-                    "Not yet started"
-                  )}
-                </td>
-                <td className="py-2 px-4 border-b">
-                  {getNextInstanceDate(event) ? (
-                    <ReactTimeAgo
-                      date={getNextInstanceDate(event) as Date}
-                      locale="en-US"
-                    />
-                  ) : (
-                    "No data"
-                  )}
-                </td>
-                <td className="py-2 px-4 border-b">
-                  {getTimeBetweenInstances(event)}
-                </td>
-                <td className="py-2 px-4 border-b">
-                  {calculateEventsInNext12Months(event)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name of Meeting</TableHead>
+                <TableHead>Frequency</TableHead>
+                <TableHead>Last Date</TableHead>
+                <TableHead>Next Date</TableHead>
+                <TableHead>Time Between Instances</TableHead>
+                <TableHead>Events in Next 12 Months</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredEvents.map((event) => (
+                <TableRow key={`${event.id}-${event.recurringEventId || ""}`}>
+                  <TableCell>{event.summary}</TableCell>
+                  <TableCell>{getPlainEnglishFrequency(event)}</TableCell>
+                  <TableCell>
+                    {getLastInstanceDate(event) ? (
+                      <ReactTimeAgo
+                        date={getLastInstanceDate(event) as Date}
+                        locale="en-US"
+                      />
+                    ) : (
+                      "Not yet started"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {getNextInstanceDate(event) ? (
+                      <ReactTimeAgo
+                        date={getNextInstanceDate(event) as Date}
+                        locale="en-US"
+                      />
+                    ) : (
+                      "No data"
+                    )}
+                  </TableCell>
+                  <TableCell>{getTimeBetweenInstances(event)}</TableCell>
+                  <TableCell>{calculateEventsInNext12Months(event)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       </main>
     </div>
   );

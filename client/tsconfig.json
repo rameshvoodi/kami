@@ -22,5 +22,5 @@
   },
   "include": [
     "src"
-, "fetchkaki.js"  ]
+, "fetchkaki.js", "src/lib/ui/button.tsx", "src/lib/ui/card.tsx", "src/lib/ui/select.tsx", "src/lib/ui/table.tsx", "src/lib/vitals.ts"  ]
 }
