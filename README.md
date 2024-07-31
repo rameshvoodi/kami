@@ -1,6 +1,35 @@
+## contributing
+
+you can make a pull request to this repository, and we will review it as soon as possible.
+
+## About the project
+
+this project is a simple calendar app that allows you to add events to your google calendar, it uses google calendar API to fetch and add events to your calendar.
+
+## Technologies used
+
+- React
+- Typescript
+- Tailwind CSS
+- Node.js
+- Express.js
+- Google Calendar API
+- shadcn-ui
+
+
 # Running Locally 
 
-# setting the Backend.
+To run this project locally, you need to follow these steps:
+
+# Clone the repository
+
+```bash
+git clone this-repo-url
+``` 
+
+
+
+# setting up the Backend.
 
 please head to [Google calendar Docs](https://developers.google.com/calendar/api/quickstart/js) to obtain `CLIENT_ID` and `CLIENT_SECRET`
 
@@ -91,17 +120,3 @@ CLIENT_URL="YOUR_CLIENT_URL"
 
 
 ```
-
-
-
-# Running in Docker:
-
-* at the root folder run this command:
-
-```bash
-docker-compose up --build
-```
-
-Frontend: Open your web browser and go to http://localhost:3000.
-
-Backend: Your backend service can be accessed internally within the Docker network using the service name (backend), e.g., from your frontend service.
