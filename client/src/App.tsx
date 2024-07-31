@@ -206,7 +206,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900">
       <header className="bg-blue-500 text-white py-3 px-7  shadow-md flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">My Calendar App</h1>
+        <h1 className="text-2xl font-semibold">Kami calendar</h1>
         {loggedIn ? (
           <Button variant="destructive" onClick={handleLogout}>
             Logout

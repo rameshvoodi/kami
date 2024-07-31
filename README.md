@@ -1,10 +1,13 @@
+## About the project
+
+![kami calendar](./client/public/kamical.png)
+
+this project is a simple calendar app that allows you to add events to your google calendar, it uses google calendar API to fetch and add events to your calendar.
+
 ## contributing
 
 you can make a pull request to this repository, and we will review it as soon as possible.
 
-## About the project
-
-this project is a simple calendar app that allows you to add events to your google calendar, it uses google calendar API to fetch and add events to your calendar.
 
 ## Technologies used
 
