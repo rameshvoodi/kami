@@ -2,7 +2,7 @@
 
 ![kami calendar](./client/public/kamical.png)
 
-this project is a simple calendar app that allows you to add events to your google calendar, it uses google calendar API to fetch and add events to your calendar.
+this project displays your recurring events from your google calendar, you can sort them based on type of events and their instances, it uses google calendar API to fetch events.
 
 ## contributing
 
