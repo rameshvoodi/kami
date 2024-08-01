@@ -1,6 +1,6 @@
 ## About the project
 
-![kami calendar](./client/public/kamical.png)
+![kami calendar](./screencapture-localhost-3000-2024-07-31-13_58_32.png)
 
 this project displays your recurring events from your google calendar, you can sort them based on type of events and their instances, it uses google calendar API to fetch events.
 
